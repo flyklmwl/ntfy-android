@@ -200,7 +200,9 @@ class DownloadAttachmentWorker(private val context: Context, params: WorkerParam
         if (!attachmentDir.exists() && !attachmentDir.mkdirs()) {
             throw Exception("Cannot create cache directory for attachments: $attachmentDir")
         }
-        val file = ensureSafeNewFile(attachmentDir, notification.id)
+        // Use original filename (with extension) so FileProvider.getType() can detect MIME type
+        val fileName = notification.attachment?.name ?: notification.id
+        val file = ensureSafeNewFile(attachmentDir, fileName)
         return FileProvider.getUriForFile(context, FILE_PROVIDER_AUTHORITY, file)
     }
 
