@@ -188,10 +188,10 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
                 drawerLayout.close()
                 // Navigate to the clicked subscription
                 val intent = Intent(this, DetailActivity::class.java)
-                intent.putExtra(EXTRA_SUBSCRIPTION_ID, subscription.id)
-                intent.putExtra(EXTRA_SUBSCRIPTION_BASE_URL, subscription.baseUrl)
-                intent.putExtra(EXTRA_SUBSCRIPTION_TOPIC, subscription.topic)
-                intent.putExtra(EXTRA_SUBSCRIPTION_DISPLAY_NAME,
+                intent.putExtra(MainActivity.EXTRA_SUBSCRIPTION_ID, subscription.id)
+                intent.putExtra(MainActivity.EXTRA_SUBSCRIPTION_BASE_URL, subscription.baseUrl)
+                intent.putExtra(MainActivity.EXTRA_SUBSCRIPTION_TOPIC, subscription.topic)
+                intent.putExtra(MainActivity.EXTRA_SUBSCRIPTION_DISPLAY_NAME,
                     subscription.displayName ?: subscription.topic)
                 intent.putExtra(MainActivity.EXTRA_SUBSCRIPTION_INSTANT, subscription.instant)
                 intent.putExtra(MainActivity.EXTRA_SUBSCRIPTION_MUTED_UNTIL, subscription.mutedUntil)
