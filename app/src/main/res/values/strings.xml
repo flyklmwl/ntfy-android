@@ -127,6 +127,7 @@
         Once subscribed, you can PUT/POST notifications.
     </string>
     <string name="add_dialog_topic_name_hint">Topic name, e.g. phils_alerts</string>
+    <string name="add_dialog_category_hint">Category (optional)</string>
     <string name="add_dialog_use_another_server">Use another server</string>
     <string name="add_dialog_use_another_server_description">Enter service URLs below to subscribe to topics from other servers.</string>
     <string name="add_dialog_instant_delivery">Instant delivery in doze mode</string>
@@ -566,4 +567,12 @@
     <string name="client_certificate_dialog_error_wrong_password">Wrong password or invalid PKCS#12 file</string>
     <string name="client_certificate_dialog_error_invalid_p12_password">Invalid password or corrupted PKCS#12 file</string>
     <string name="client_certificate_dialog_error_invalid_url">Invalid service URL</string>
+
+    <!-- Navigation drawer -->
+    <string name="drawer_header_title">订阅分类</string>
+    <string name="drawer_header_subtitle">管理你的订阅和分组</string>
+    <string name="drawer_category_expand">展开分类</string>
+    <string name="drawer_category_collapse">折叠分类</string>
+    <string name="drawer_subscription_icon">订阅图标</string>
+    <string name="drawer_all_subscriptions">全部订阅</string>
 </resources>

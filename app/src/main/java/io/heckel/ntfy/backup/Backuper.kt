@@ -121,6 +121,7 @@ class Backuper(val context: Context) {
                     upAppId = s.upAppId,
                     upConnectorToken = s.upConnectorToken,
                     displayName = s.displayName,
+                    category = s.category,
                 )
                 repository.addSubscription(subscription)
 
@@ -302,7 +303,8 @@ class Backuper(val context: Context) {
                 icon = s.icon,
                 upAppId = s.upAppId,
                 upConnectorToken = s.upConnectorToken,
-                displayName = s.displayName
+                displayName = s.displayName,
+                category = s.category
             )
         }
     }
@@ -443,7 +445,8 @@ data class Subscription(
     val icon: String?,
     val upAppId: String?,
     val upConnectorToken: String?,
-    val displayName: String?
+    val displayName: String?,
+    val category: String? = null
 )
 
 data class Notification(

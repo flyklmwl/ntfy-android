@@ -47,6 +47,7 @@ import androidx.work.WorkManager
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import androidx.drawerlayout.widget.DrawerLayout
 import io.heckel.ntfy.BuildConfig
 import io.heckel.ntfy.R
 import io.heckel.ntfy.app.Application
@@ -100,6 +101,11 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
     private lateinit var mainListContainer: SwipeRefreshLayout
     private lateinit var adapter: MainAdapter
     private lateinit var fab: FloatingActionButton
+    private lateinit var drawerLayout: DrawerLayout
+    private lateinit var drawerAdapter: DrawerAdapter
+    private lateinit var navDrawerList: RecyclerView
+    private val expandedCategories = mutableSetOf<String>()
+    private var currentSubscriptions: List<Subscription> = emptyList()
 
     // Other stuff
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
@@ -161,8 +167,37 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         toolbar.setTitleTextColor(toolbarTextColor)
         toolbar.setNavigationIconTint(toolbarTextColor)
         toolbar.overflowIcon?.setTint(toolbarTextColor)
+        // Navigation icon (hamburger menu) — set in code since app_bar_drawer.xml is shared
+        toolbar.navigationIcon = ContextCompat.getDrawable(this, R.drawable.ic_menu_black_24dp)
         setSupportActionBar(toolbar)
         title = getString(R.string.main_action_bar_title)
+
+        // Navigation drawer
+        drawerLayout = findViewById(R.id.drawer_layout)
+        toolbar.setNavigationOnClickListener {
+            drawerLayout.open()
+        }
+
+        // Drawer content adapter
+        navDrawerList = findViewById(R.id.nav_drawer_list)
+        drawerAdapter = DrawerAdapter(
+            onAllSubscriptionsClick = {
+                drawerLayout.close()
+            },
+            onSubscriptionClick = { subscription ->
+                drawerLayout.close()
+                onSubscriptionItemClick(subscription)
+            },
+            onCategoryToggle = { categoryName ->
+                if (expandedCategories.contains(categoryName)) {
+                    expandedCategories.remove(categoryName)
+                } else {
+                    expandedCategories.add(categoryName)
+                }
+                refreshDrawerItems()
+            }
+        )
+        navDrawerList.adapter = drawerAdapter
         
         // Set system status bar appearance
         WindowInsetsControllerCompat(window, window.decorView).isAppearanceLightStatusBars =
@@ -217,6 +252,10 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
             it?.let { subscriptions ->
                 // Update main list
                 adapter.submitList(subscriptions as MutableList<Subscription>)
+
+                // Update drawer
+                currentSubscriptions = subscriptions as MutableList<Subscription>
+                refreshDrawerItems()
                 if (it.isEmpty()) {
                     mainListContainer.visibility = View.GONE
                     noEntries.visibility = View.VISIBLE
@@ -698,8 +737,8 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         newFragment.show(supportFragmentManager, AddFragment.TAG)
     }
 
-    override fun onSubscribe(topic: String, baseUrl: String, instant: Boolean) {
-        Log.d(TAG, "Adding subscription ${topicShortUrl(baseUrl, topic)} (instant = $instant)")
+    override fun onSubscribe(topic: String, baseUrl: String, instant: Boolean, category: String?) {
+        Log.d(TAG, "Adding subscription ${topicShortUrl(baseUrl, topic)} (instant = $instant, category = $category)")
 
         // Add subscription to database
         val subscription = Subscription(
@@ -717,6 +756,7 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
             upAppId = null,
             upConnectorToken = null,
             displayName = null,
+            category = category,
             totalCount = 0,
             newCount = 0,
             lastActive = Date().time/1000
@@ -930,6 +970,37 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
                 Log.w(TAG, "Failed to migrate subscription icons", e)
             }
         }
+    }
+
+    // ---- Navigation drawer helpers ----
+
+    private fun refreshDrawerItems() {
+        val items = buildDrawerItems(currentSubscriptions)
+        drawerAdapter.submitList(items)
+    }
+
+    private fun buildDrawerItems(subscriptions: List<Subscription>): List<DrawerItem> {
+        val items = mutableListOf<DrawerItem>()
+
+        // Header
+        items.add(DrawerItem.Header)
+
+        // All subscriptions shortcut
+        items.add(DrawerItem.AllSubscriptions(count = subscriptions.size))
+
+        // Group by category (null → "未分类")
+        val grouped = subscriptions.groupBy { it.category ?: "未分类" }
+        for ((category, subs) in grouped) {
+            val isExpanded = expandedCategories.contains(category)
+            items.add(DrawerItem.CategoryGroup(category, subs, isExpanded))
+            if (isExpanded) {
+                subs.forEach { sub ->
+                    items.add(DrawerItem.SubscriptionEntry(sub))
+                }
+            }
+        }
+
+        return items
     }
 
     companion object {

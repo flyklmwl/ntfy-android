@@ -44,6 +44,7 @@ class AddFragment : DialogFragment(), TrustedCertificateFragment.TrustedCertific
 
     // Subscribe page
     private lateinit var subscribeTopicText: TextInputEditText
+    private lateinit var subscribeCategoryText: TextInputEditText
     private lateinit var subscribeBaseUrlLayout: TextInputLayout
     private lateinit var subscribeBaseUrlText: AutoCompleteTextView
     private lateinit var subscribeUseAnotherServerCheckbox: CheckBox
@@ -64,7 +65,7 @@ class AddFragment : DialogFragment(), TrustedCertificateFragment.TrustedCertific
     private lateinit var loginErrorTextImage: View
 
     interface SubscribeListener {
-        fun onSubscribe(topic: String, baseUrl: String, instant: Boolean)
+        fun onSubscribe(topic: String, baseUrl: String, instant: Boolean, category: String?)
     }
 
     override fun onAttach(context: Context) {
@@ -109,6 +110,7 @@ class AddFragment : DialogFragment(), TrustedCertificateFragment.TrustedCertific
 
         // Fields for "subscribe page"
         subscribeTopicText = view.findViewById(R.id.add_dialog_subscribe_topic_text)
+        subscribeCategoryText = view.findViewById(R.id.add_dialog_subscribe_category_text)
         subscribeBaseUrlLayout = view.findViewById(R.id.add_dialog_subscribe_base_url_layout)
         subscribeBaseUrlLayout.background = view.background
         subscribeBaseUrlLayout.makeEndIconSmaller(resources) // Hack!
@@ -430,7 +432,8 @@ class AddFragment : DialogFragment(), TrustedCertificateFragment.TrustedCertific
             val baseUrl = getBaseUrl()
             val topic = subscribeTopicText.text.toString()
             val instant = !BuildConfig.FIREBASE_AVAILABLE || baseUrl != appBaseUrl || subscribeInstantDeliveryCheckbox.isChecked
-            subscribeListener.onSubscribe(topic, baseUrl, instant)
+            val category = subscribeCategoryText.text?.toString()?.trim()?.ifBlank { null }
+            subscribeListener.onSubscribe(topic, baseUrl, instant, category)
             dialog?.dismiss()
         }
     }
@@ -476,6 +479,7 @@ class AddFragment : DialogFragment(), TrustedCertificateFragment.TrustedCertific
 
     private fun enableSubscribeView(enable: Boolean) {
         subscribeTopicText.isEnabled = enable
+        subscribeCategoryText.isEnabled = enable
         subscribeBaseUrlText.isEnabled = enable
         subscribeInstantDeliveryCheckbox.isEnabled = enable
         subscribeUseAnotherServerCheckbox.isEnabled = enable

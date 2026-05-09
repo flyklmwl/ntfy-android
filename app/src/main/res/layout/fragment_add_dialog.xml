@@ -92,6 +92,27 @@
 
                 </com.google.android.material.textfield.TextInputLayout>
 
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/add_dialog_subscribe_category_layout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:layout_constraintTop_toBottomOf="@id/add_dialog_subscribe_topic_layout"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    android:layout_marginTop="10dp">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/add_dialog_subscribe_category_text"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/add_dialog_category_hint"
+                        android:importantForAutofill="no"
+                        android:maxLines="1"
+                        android:inputType="text"
+                        android:maxLength="32"/>
+
+                </com.google.android.material.textfield.TextInputLayout>
+
                 <CheckBox
                     android:id="@+id/add_dialog_subscribe_use_another_server_checkbox"
                     android:text="@string/add_dialog_use_another_server"
@@ -101,7 +122,7 @@
                     android:layout_marginTop="-3dp"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/add_dialog_subscribe_topic_layout"/>
+                    app:layout_constraintTop_toBottomOf="@id/add_dialog_subscribe_category_layout"/>
 
                 <TextView
                     android:id="@+id/add_dialog_subscribe_use_another_server_description"

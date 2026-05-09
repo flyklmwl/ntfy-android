@@ -19,6 +19,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.view.ActionMode
 import androidx.appcompat.widget.SearchView
 import androidx.core.content.ContextCompat
+import androidx.drawerlayout.widget.DrawerLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -100,6 +101,11 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
     private var isSearchActive: Boolean = false
     private lateinit var toolbar: com.google.android.material.appbar.MaterialToolbar
     private var toolbarTextColor: Int = 0
+    private lateinit var drawerLayout: DrawerLayout
+    private lateinit var drawerAdapter: DrawerAdapter
+    private lateinit var navDrawerList: RecyclerView
+    private val expandedCategories = mutableSetOf<String>()
+    private var currentSubscriptions: List<Subscription> = emptyList()
 
     // Action mode stuff
     private var actionMode: ActionMode? = null
@@ -161,7 +167,53 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
         toolbar.setNavigationIconTint(toolbarTextColor)
         toolbar.overflowIcon?.setTint(toolbarTextColor)
         toolbar.collapseIcon = collapseIcon
+        // Navigation icon (hamburger menu) — set in code since app_bar_drawer.xml is shared
+        toolbar.navigationIcon = ContextCompat.getDrawable(this, R.drawable.ic_menu_black_24dp)
         setSupportActionBar(toolbar)
+
+        // Navigation drawer
+        drawerLayout = findViewById(R.id.drawer_layout)
+        toolbar.setNavigationOnClickListener {
+            drawerLayout.open()
+        }
+
+        // Drawer content adapter
+        navDrawerList = findViewById(R.id.nav_drawer_list)
+        drawerAdapter = DrawerAdapter(
+            onAllSubscriptionsClick = {
+                drawerLayout.close()
+                finish() // Go back to MainActivity
+            },
+            onSubscriptionClick = { subscription ->
+                drawerLayout.close()
+                // Navigate to the clicked subscription
+                val intent = Intent(this, DetailActivity::class.java)
+                intent.putExtra(EXTRA_SUBSCRIPTION_ID, subscription.id)
+                intent.putExtra(EXTRA_SUBSCRIPTION_BASE_URL, subscription.baseUrl)
+                intent.putExtra(EXTRA_SUBSCRIPTION_TOPIC, subscription.topic)
+                intent.putExtra(EXTRA_SUBSCRIPTION_DISPLAY_NAME,
+                    subscription.displayName ?: subscription.topic)
+                intent.putExtra(MainActivity.EXTRA_SUBSCRIPTION_INSTANT, subscription.instant)
+                intent.putExtra(MainActivity.EXTRA_SUBSCRIPTION_MUTED_UNTIL, subscription.mutedUntil)
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                startActivity(intent)
+            },
+            onCategoryToggle = { categoryName ->
+                if (expandedCategories.contains(categoryName)) {
+                    expandedCategories.remove(categoryName)
+                } else {
+                    expandedCategories.add(categoryName)
+                }
+                refreshDrawerItems()
+            }
+        )
+        navDrawerList.adapter = drawerAdapter
+
+        // Observe all subscriptions for drawer
+        repository.getSubscriptionsLiveData().observe(this) { subscriptions ->
+            currentSubscriptions = subscriptions
+            refreshDrawerItems()
+        }
         
         // Set system status bar appearance
         WindowInsetsControllerCompat(window, window.decorView).isAppearanceLightStatusBars =
@@ -1020,6 +1072,30 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
         actionMode = null
         adapter.selected.clear()
         adapter.notifyItemRangeChanged(0, adapter.currentList.size)
+    }
+
+    // ---- Navigation drawer helpers ----
+
+    private fun refreshDrawerItems() {
+        val items = buildDrawerItems(currentSubscriptions)
+        drawerAdapter.submitList(items)
+    }
+
+    private fun buildDrawerItems(subscriptions: List<Subscription>): List<DrawerItem> {
+        val items = mutableListOf<DrawerItem>()
+        items.add(DrawerItem.Header)
+        items.add(DrawerItem.AllSubscriptions(count = subscriptions.size))
+        val grouped = subscriptions.groupBy { it.category ?: "未分类" }
+        for ((category, subs) in grouped) {
+            val isExpanded = expandedCategories.contains(category)
+            items.add(DrawerItem.CategoryGroup(category, subs, isExpanded))
+            if (isExpanded) {
+                subs.forEach { sub ->
+                    items.add(DrawerItem.SubscriptionEntry(sub))
+                }
+            }
+        }
+        return items
     }
 
     companion object {
