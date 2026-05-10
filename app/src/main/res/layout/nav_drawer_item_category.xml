@@ -26,13 +26,16 @@
 
     <TextView
         android:id="@+id/drawer_category_count"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
         android:layout_marginEnd="8dp"
-        android:textAppearance="?attr/textAppearanceCaption"
-        android:textColor="?attr/colorOnSurfaceVariant"
-        android:alpha="0.6"
-        tools:text="3" />
+        android:background="@drawable/ic_circle"
+        android:gravity="center"
+        android:textColor="@android:color/black"
+        android:textSize="8sp"
+        android:textStyle="bold"
+        tools:text="3"
+        tools:visibility="visible" />
 
     <ImageView
         android:id="@+id/drawer_category_expand_icon"

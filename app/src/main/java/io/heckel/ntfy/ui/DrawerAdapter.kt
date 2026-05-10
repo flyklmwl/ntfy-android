@@ -131,7 +131,13 @@ class DrawerAdapter(
 
         fun bind(category: DrawerItem.CategoryGroup, onToggle: (String) -> Unit) {
             name.text = category.name
-            count.text = category.subscriptions.size.toString()
+            val totalUnread = category.subscriptions.sumOf { it.newCount }
+            if (totalUnread > 0) {
+                count.text = if (totalUnread > 99) "99+" else totalUnread.toString()
+                count.visibility = View.VISIBLE
+            } else {
+                count.visibility = View.GONE
+            }
             expandIcon.rotation = if (category.expanded) 0f else -90f
             itemView.setOnClickListener { onToggle(category.name) }
         }
@@ -139,9 +145,17 @@ class DrawerAdapter(
 
     class SubscriptionViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         private val name: TextView = view.findViewById(R.id.drawer_sub_name)
+        private val unread: TextView = view.findViewById(R.id.drawer_sub_unread)
 
         fun bind(sub: Subscription, onClick: (Subscription) -> Unit) {
             name.text = sub.displayName ?: sub.topic
+            val count = sub.newCount
+            if (count > 0) {
+                unread.text = if (count > 99) "99+" else count.toString()
+                unread.visibility = View.VISIBLE
+            } else {
+                unread.visibility = View.GONE
+            }
             itemView.setOnClickListener { onClick(sub) }
         }
     }
