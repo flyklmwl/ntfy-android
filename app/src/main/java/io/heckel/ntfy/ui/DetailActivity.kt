@@ -62,6 +62,8 @@ import kotlin.random.Random
 import androidx.core.view.size
 import androidx.core.view.get
 import androidx.core.net.toUri
+import androidx.activity.OnBackPressedCallback
+import androidx.core.view.GravityCompat
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.textfield.TextInputEditText
 import android.widget.ImageButton
@@ -195,6 +197,9 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
                 finish() // Go back to MainActivity
             },
             onSubscriptionClick = { subscription ->
+                // Clear bubble immediately in drawer (v2.2.1)
+                MainActivity.visitedSubscriptionIds.add(subscription.id)
+                refreshDrawerItems()
                 drawerLayout.close()
                 // Navigate to the clicked subscription
                 val intent = Intent(this, DetailActivity::class.java)
@@ -448,6 +453,17 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
 
         // Setup FAB and message bar
         setupPublishUI()
+
+        // Edge swipe / back button → always opens drawer (v2.2.1)
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (drawerLayout.isOpen || drawerLayout.isDrawerVisible(androidx.core.view.GravityCompat.START)) {
+                    drawerLayout.closeDrawer(androidx.core.view.GravityCompat.START)
+                } else {
+                    drawerLayout.open()
+                }
+            }
+        })
     }
 
     private fun setupPublishUI() {
@@ -1128,10 +1144,18 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
         val grouped = subscriptions.groupBy { it.category ?: "未分类" }
         for ((category, subs) in grouped) {
             val isExpanded = expandedCategories.contains(category)
-            items.add(DrawerItem.CategoryGroup(category, subs, isExpanded))
+            // Zero out visited subscription counts for both group bubble and individual entries
+            val displaySubs = subs.map { sub ->
+                if (MainActivity.visitedSubscriptionIds.contains(sub.id)) {
+                    sub.copy(newCount = 0)
+                } else {
+                    sub
+                }
+            }
+            items.add(DrawerItem.CategoryGroup(category, displaySubs, isExpanded))
             if (isExpanded) {
-                subs.forEach { sub ->
-                    items.add(DrawerItem.SubscriptionEntry(sub))
+                displaySubs.forEach { displaySub ->
+                    items.add(DrawerItem.SubscriptionEntry(displaySub))
                 }
             }
         }

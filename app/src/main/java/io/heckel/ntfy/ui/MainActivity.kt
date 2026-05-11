@@ -85,6 +85,8 @@ import androidx.core.content.FileProvider
 import androidx.core.view.size
 import androidx.core.view.get
 import androidx.core.net.toUri
+import androidx.activity.OnBackPressedCallback
+import androidx.core.view.GravityCompat
 
 class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, NotificationFragment.NotificationSettingsListener {
     private val viewModel by viewModels<SubscriptionsViewModel> {
@@ -185,6 +187,9 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
                 drawerLayout.close()
             },
             onSubscriptionClick = { subscription ->
+                // Clear bubble immediately in drawer (v2.2.1)
+                visitedSubscriptionIds.add(subscription.id)
+                refreshDrawerItems()
                 drawerLayout.close()
                 onSubscriptionItemClick(subscription)
             },
@@ -425,6 +430,22 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
 
         // FIXME 2026-05-04: Remove this migration after 1 month
         migrateSubscriptionIconsFromCache()
+
+        // Auto-open drawer on app start (v2.2.1)
+        drawerLayout.post { drawerLayout.open() }
+
+        // Edge swipe / back button -> open drawer instead of exit (v2.2.1)
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (drawerLayout.isOpen) {
+                    drawerLayout.close()
+                } else if (drawerLayout.isDrawerVisible(androidx.core.view.GravityCompat.START)) {
+                    drawerLayout.closeDrawer(androidx.core.view.GravityCompat.START)
+                } else {
+                    drawerLayout.open()
+                }
+            }
+        })
     }
 
     private fun maybeRequestNotificationPermission() {
@@ -438,6 +459,11 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
 
     override fun onResume() {
         super.onResume()
+        // Clear clicked-from-drawer subscriptions (DB updated via onPause) — v2.2.1
+        if (visitedSubscriptionIds.isNotEmpty()) {
+            visitedSubscriptionIds.clear()
+            refreshDrawerItems()
+        }
         showHideNotificationMenuItems()
         showHideConnectionErrorMenuItem(repository.getConnectionDetails())
         showHideNoNetworkBanner()
@@ -992,10 +1018,18 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         val grouped = subscriptions.groupBy { it.category ?: "未分类" }
         for ((category, subs) in grouped) {
             val isExpanded = expandedCategories.contains(category)
-            items.add(DrawerItem.CategoryGroup(category, subs, isExpanded))
+            // Zero out visited subscription counts for both group bubble and individual entries
+            val displaySubs = subs.map { sub ->
+                if (visitedSubscriptionIds.contains(sub.id)) {
+                    sub.copy(newCount = 0)
+                } else {
+                    sub
+                }
+            }
+            items.add(DrawerItem.CategoryGroup(category, displaySubs, isExpanded))
             if (isExpanded) {
-                subs.forEach { sub ->
-                    items.add(DrawerItem.SubscriptionEntry(sub))
+                displaySubs.forEach { displaySub ->
+                    items.add(DrawerItem.SubscriptionEntry(displaySub))
                 }
             }
         }
@@ -1011,6 +1045,10 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         const val EXTRA_SUBSCRIPTION_DISPLAY_NAME = "subscriptionDisplayName"
         const val EXTRA_SUBSCRIPTION_INSTANT = "subscriptionInstant"
         const val EXTRA_SUBSCRIPTION_MUTED_UNTIL = "subscriptionMutedUntil"
+
+        // Shared set: drawer subscription IDs clicked — clears bubble immediately (v2.2.1)
+        val visitedSubscriptionIds = mutableSetOf<Long>()
+
         const val ANIMATION_DURATION = 80L
         const val ONE_DAY_MILLIS = 86400000L
 
