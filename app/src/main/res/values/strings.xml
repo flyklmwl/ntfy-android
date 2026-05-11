@@ -220,6 +220,8 @@
     <string name="detail_menu_unsubscribe">Unsubscribe</string>
     <string name="detail_menu_search">Search notifications</string>
     <string name="detail_menu_search_hint">Search in notifications</string>
+    <string name="detail_menu_filter_all">Show all notifications</string>
+    <string name="detail_menu_filter_unread">Show unread only</string>
 
     <!-- Detail activity: Action mode -->
     <string name="detail_action_mode_menu_delete">Delete</string>

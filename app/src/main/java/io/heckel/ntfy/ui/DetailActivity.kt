@@ -90,6 +90,12 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
     private lateinit var mainList: RecyclerView
     private lateinit var mainListContainer: SwipeRefreshLayout
     private lateinit var menu: Menu
+    // Empty-state views (promoted to members for filter access — v2.2.0)
+    private lateinit var noEntriesText: View
+    private lateinit var noSearchResultsText: TextView
+    private lateinit var howToIntro: View
+    private lateinit var howToExample: TextView
+    private lateinit var howToLink: View
     private lateinit var fab: FloatingActionButton
     private lateinit var messageBar: View
     private lateinit var messageBarText: TextInputEditText
@@ -106,6 +112,10 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
     private lateinit var navDrawerList: RecyclerView
     private val expandedCategories = mutableSetOf<String>()
     private var currentSubscriptions: List<Subscription> = emptyList()
+
+    // Filter state (v2.2.0)
+    private var showUnreadOnly: Boolean = true  // 默认仅显示未读
+    private var cachedNotifications: List<io.heckel.ntfy.db.Notification> = emptyList()
 
     // Action mode stuff
     private var actionMode: ActionMode? = null
@@ -344,7 +354,7 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
         title = subscriptionDisplayName
 
         // Set "how to instructions"
-        val howToExample: TextView = findViewById(R.id.detail_how_to_example)
+        howToExample = findViewById(R.id.detail_how_to_example)
         val howToText = getString(R.string.detail_how_to_example, topicUrl)
         howToExample.linksClickable = true
         howToExample.text = Html.fromHtml(howToText, Html.FROM_HTML_MODE_LEGACY)
@@ -355,7 +365,7 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
         mainListContainer.setColorSchemeColors(Colors.swipeToRefreshColor(this))
 
         // Update main list based on viewModel (& its datasource/livedata)
-        val noEntriesText: View = findViewById(R.id.detail_no_notifications)
+        noEntriesText = findViewById(R.id.detail_no_notifications)
         val onNotificationClick = { n: Notification -> onNotificationClick(n) }
         val onNotificationLongClick = { n: Notification -> onNotificationLongClick(n) }
 
@@ -372,35 +382,14 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
         }
 
         // Observe filtered notifications (filtered by search query)
-        val noSearchResultsText: TextView = findViewById(R.id.detail_no_notifications_text)
-        val howToIntro: View = findViewById(R.id.detail_how_to_intro)
-        val howToLink: View = findViewById(R.id.detail_how_to_link)
+        noSearchResultsText = findViewById(R.id.detail_no_notifications_text)
+        howToIntro = findViewById(R.id.detail_how_to_intro)
+        howToLink = findViewById(R.id.detail_how_to_link)
         viewModel.listFiltered(subscriptionId).observe(this) {
             it?.let { notifications ->
-                // Show list view
-                adapter.submitList(notifications.toMutableList())
-                if (notifications.isEmpty()) {
-                    mainListContainer.visibility = View.GONE
-                    noEntriesText.visibility = View.VISIBLE
-                    // Show different text based on whether we're searching or not
-                    if (isSearchActive && viewModel.hasSearchQuery()) {
-                        noSearchResultsText.text = getString(R.string.detail_no_search_results)
-                        howToIntro.visibility = View.GONE
-                        howToExample.visibility = View.GONE
-                        howToLink.visibility = View.GONE
-                    } else {
-                        noSearchResultsText.text = getString(R.string.detail_no_notifications_text)
-                        howToIntro.visibility = View.VISIBLE
-                        howToExample.visibility = View.VISIBLE
-                        howToLink.visibility = if (BuildConfig.PAYMENT_LINKS_AVAILABLE) View.VISIBLE else View.GONE
-                    }
-                } else {
-                    mainListContainer.visibility = View.VISIBLE
-                    noEntriesText.visibility = View.GONE
-                }
-
-                // Cancel notifications that still have popups
-                maybeCancelNotificationPopups(notifications)
+                // Cache raw list and apply filter (v2.2.0)
+                cachedNotifications = notifications
+                applyFilter()
             }
         }
 
@@ -607,6 +596,43 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
         repository.detailViewSubscriptionId.set(0) // Mark as closed
     }
 
+    /**
+     * Apply showUnreadOnly filter and update the notification list (v2.2.0).
+     * Called from LiveData observer and from menu filter toggle.
+     */
+    private fun applyFilter() {
+        val filtered = if (showUnreadOnly) {
+            cachedNotifications.filter { it.notificationId > 0L }
+        } else {
+            cachedNotifications
+        }
+
+        // Show list view
+        adapter.submitList(filtered.toMutableList())
+        if (filtered.isEmpty()) {
+            mainListContainer.visibility = View.GONE
+            noEntriesText.visibility = View.VISIBLE
+            // Show different text based on whether we're searching or not
+            if (isSearchActive && viewModel.hasSearchQuery()) {
+                noSearchResultsText.text = getString(R.string.detail_no_search_results)
+                howToIntro.visibility = View.GONE
+                howToExample.visibility = View.GONE
+                howToLink.visibility = View.GONE
+            } else {
+                noSearchResultsText.text = getString(R.string.detail_no_notifications_text)
+                howToIntro.visibility = View.VISIBLE
+                howToExample.visibility = View.VISIBLE
+                howToLink.visibility = if (BuildConfig.PAYMENT_LINKS_AVAILABLE) View.VISIBLE else View.GONE
+            }
+        } else {
+            mainListContainer.visibility = View.VISIBLE
+            noEntriesText.visibility = View.GONE
+        }
+
+        // Cancel notifications that still have popups
+        maybeCancelNotificationPopups(filtered)
+    }
+
     private fun maybeCancelNotificationPopups(notifications: List<Notification>) {
         val notificationsWithPopups = notifications.filter { notification -> notification.notificationId != 0 }
         if (notificationsWithPopups.isNotEmpty()) {
@@ -749,6 +775,20 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
             }
             R.id.detail_menu_connection_error -> {
                 onConnectionErrorClick()
+                true
+            }
+            R.id.detail_menu_filter -> {
+                showUnreadOnly = !showUnreadOnly
+                val filterItem = menu.findItem(R.id.detail_menu_filter)
+                if (showUnreadOnly) {
+                    filterItem.icon = ContextCompat.getDrawable(this, R.drawable.ic_filter_circle_filled_24dp)
+                    filterItem.title = getString(R.string.detail_menu_filter_unread)
+                } else {
+                    filterItem.icon = ContextCompat.getDrawable(this, R.drawable.ic_filter_circle_outline_24dp)
+                    filterItem.title = getString(R.string.detail_menu_filter_all)
+                }
+                filterItem.icon?.setTint(toolbarTextColor)
+                applyFilter()
                 true
             }
             R.id.detail_menu_copy_url -> {
