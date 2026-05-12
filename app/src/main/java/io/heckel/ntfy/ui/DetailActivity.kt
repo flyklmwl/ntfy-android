@@ -606,14 +606,20 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
 
     override fun onPause() {
         super.onPause()
-        Log.d(TAG, "onPause hook: Removing 'notificationId' from all notifications for $subscriptionId")
-        GlobalScope.launch(Dispatchers.IO) {
-            // Note: This is here and not in onDestroy/onStop, because we want to clear notifications as early
-            // as possible, so that we don't see the "new" bubble in the main list anymore.
-            repository.markAllAsRead(subscriptionId)
-        }
         Log.d(TAG, "onPause hook: Marking subscription $subscriptionId as 'not open'")
         repository.detailViewSubscriptionId.set(0) // Mark as closed
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        Log.d(TAG, "onDestroy hook: Removing 'notificationId' from all notifications for $subscriptionId")
+        GlobalScope.launch(Dispatchers.IO) {
+            // Moved from onPause to onDestroy (v2.2.2 bugfix):
+            // onPause fires for link clicks, app switch, screen off — too eager.
+            // onDestroy only fires when user explicitly leaves (back/finish).
+            // Bubble clearing is handled by visitedSubscriptionIds (v2.2.1).
+            repository.markAllAsRead(subscriptionId)
+        }
     }
 
     /**
