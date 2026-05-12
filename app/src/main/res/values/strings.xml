@@ -573,6 +573,7 @@
     <!-- Navigation drawer -->
     <string name="drawer_header_title">订阅分类</string>
     <string name="drawer_header_subtitle">管理你的订阅和分组</string>
+    <string name="drawer_header_subtitle_stats">%1$d 个订阅，%2$d 个分组</string>
     <string name="drawer_category_expand">展开分类</string>
     <string name="drawer_category_collapse">折叠分类</string>
     <string name="drawer_subscription_icon">订阅图标</string>

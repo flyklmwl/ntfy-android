@@ -42,7 +42,8 @@ sealed class DrawerItem {
 class DrawerAdapter(
     private val onAllSubscriptionsClick: () -> Unit,
     private val onSubscriptionClick: (Subscription) -> Unit,
-    private val onCategoryToggle: (String) -> Unit
+    private val onCategoryToggle: (String) -> Unit,
+    private val onHeaderClick: (() -> Unit)? = null
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     companion object {
@@ -53,11 +54,20 @@ class DrawerAdapter(
     }
 
     private val items = mutableListOf<DrawerItem>()
+    private var headerSubtitle: String = ""
 
     fun submitList(newItems: List<DrawerItem>) {
         items.clear()
         items.addAll(newItems)
         notifyDataSetChanged()
+    }
+
+    fun setHeaderSubtitle(text: String) {
+        headerSubtitle = text
+        // Refresh header if it's currently visible
+        if (items.isNotEmpty() && items[0] is DrawerItem.Header) {
+            notifyItemChanged(0)
+        }
     }
 
     override fun getItemViewType(position: Int): Int = when (items[position]) {
@@ -91,7 +101,9 @@ class DrawerAdapter(
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val item = items[position]
         when (holder) {
-            is HeaderViewHolder -> { /* static content from XML */ }
+            is HeaderViewHolder -> {
+                holder.bind(headerSubtitle, onHeaderClick)
+            }
             is AllSubsViewHolder -> {
                 val all = item as DrawerItem.AllSubscriptions
                 holder.bind(all.count, onAllSubscriptionsClick)
@@ -109,7 +121,14 @@ class DrawerAdapter(
 
     // ---- ViewHolders ----
 
-    class HeaderViewHolder(view: View) : RecyclerView.ViewHolder(view)
+    class HeaderViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        private val subtitle: TextView = view.findViewById(R.id.drawer_header_subtitle)
+
+        fun bind(subtitleText: String, onClick: (() -> Unit)?) {
+            subtitle.text = subtitleText
+            itemView.setOnClickListener { onClick?.invoke() }
+        }
+    }
 
     class AllSubsViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         private val icon: ImageView = view.findViewById(R.id.drawer_sub_icon)

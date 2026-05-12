@@ -1003,6 +1003,10 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
     private fun refreshDrawerItems() {
         val items = buildDrawerItems(currentSubscriptions)
         drawerAdapter.submitList(items)
+        // Update header subtitle with stats (v2.2.2)
+        val totalSubs = currentSubscriptions.size
+        val totalGroups = currentSubscriptions.map { it.category ?: "未分类" }.distinct().size
+        drawerAdapter.setHeaderSubtitle(getString(R.string.drawer_header_subtitle_stats, totalSubs, totalGroups))
     }
 
     private fun buildDrawerItems(subscriptions: List<Subscription>): List<DrawerItem> {
@@ -1010,9 +1014,6 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
 
         // Header
         items.add(DrawerItem.Header)
-
-        // All subscriptions shortcut
-        items.add(DrawerItem.AllSubscriptions(count = subscriptions.size))
 
         // Group by category (null → "未分类")
         val grouped = subscriptions.groupBy { it.category ?: "未分类" }

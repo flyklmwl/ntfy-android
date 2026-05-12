@@ -93,6 +93,7 @@
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.ExposedDropdownMenu"
                     android:id="@+id/add_dialog_subscribe_category_layout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -101,7 +102,7 @@
                     app:layout_constraintEnd_toEndOf="parent"
                     android:layout_marginTop="10dp">
 
-                    <com.google.android.material.textfield.TextInputEditText
+                    <AutoCompleteTextView
                         android:id="@+id/add_dialog_subscribe_category_text"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -109,7 +110,8 @@
                         android:importantForAutofill="no"
                         android:maxLines="1"
                         android:inputType="text"
-                        android:maxLength="32"/>
+                        android:maxLength="32"
+                        android:dropDownHeight="200dp" />
 
                 </com.google.android.material.textfield.TextInputLayout>
 

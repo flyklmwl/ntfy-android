@@ -23,6 +23,7 @@ import io.heckel.ntfy.util.CertUtil
 import io.heckel.ntfy.util.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.core.view.isVisible
 import androidx.core.view.isGone
 import java.security.cert.CertificateException
@@ -44,7 +45,7 @@ class AddFragment : DialogFragment(), TrustedCertificateFragment.TrustedCertific
 
     // Subscribe page
     private lateinit var subscribeTopicText: TextInputEditText
-    private lateinit var subscribeCategoryText: TextInputEditText
+    private lateinit var subscribeCategoryText: AutoCompleteTextView
     private lateinit var subscribeBaseUrlLayout: TextInputLayout
     private lateinit var subscribeBaseUrlText: AutoCompleteTextView
     private lateinit var subscribeUseAnotherServerCheckbox: CheckBox
@@ -111,6 +112,7 @@ class AddFragment : DialogFragment(), TrustedCertificateFragment.TrustedCertific
         // Fields for "subscribe page"
         subscribeTopicText = view.findViewById(R.id.add_dialog_subscribe_topic_text)
         subscribeCategoryText = view.findViewById(R.id.add_dialog_subscribe_category_text)
+        setupCategoryAutocomplete()
         subscribeBaseUrlLayout = view.findViewById(R.id.add_dialog_subscribe_base_url_layout)
         subscribeBaseUrlLayout.background = view.background
         subscribeBaseUrlLayout.makeEndIconSmaller(resources) // Hack!
@@ -189,6 +191,23 @@ class AddFragment : DialogFragment(), TrustedCertificateFragment.TrustedCertific
         validateInputSubscribeView()
 
         return dialog
+    }
+
+    private fun setupCategoryAutocomplete() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val categories = repository.getSubscriptions()
+                .mapNotNull { it.category }
+                .distinct()
+                .sorted()
+            withContext(Dispatchers.Main) {
+                val adapter = ArrayAdapter(
+                    requireContext(),
+                    android.R.layout.simple_dropdown_item_1line,
+                    categories
+                )
+                subscribeCategoryText.setAdapter(adapter)
+            }
+        }
     }
 
     override fun onStart() {

@@ -220,6 +220,10 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
                     expandedCategories.add(categoryName)
                 }
                 refreshDrawerItems()
+            },
+            onHeaderClick = {
+                drawerLayout.close()
+                finish()
             }
         )
         navDrawerList.adapter = drawerAdapter
@@ -1135,12 +1139,15 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
     private fun refreshDrawerItems() {
         val items = buildDrawerItems(currentSubscriptions)
         drawerAdapter.submitList(items)
+        // Update header subtitle with stats (v2.2.2)
+        val totalSubs = currentSubscriptions.size
+        val totalGroups = currentSubscriptions.map { it.category ?: "未分类" }.distinct().size
+        drawerAdapter.setHeaderSubtitle(getString(R.string.drawer_header_subtitle_stats, totalSubs, totalGroups))
     }
 
     private fun buildDrawerItems(subscriptions: List<Subscription>): List<DrawerItem> {
         val items = mutableListOf<DrawerItem>()
         items.add(DrawerItem.Header)
-        items.add(DrawerItem.AllSubscriptions(count = subscriptions.size))
         val grouped = subscriptions.groupBy { it.category ?: "未分类" }
         for ((category, subs) in grouped) {
             val isExpanded = expandedCategories.contains(category)
